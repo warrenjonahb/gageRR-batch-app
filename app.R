@@ -159,6 +159,57 @@ server <- function(input, output, session) {
     read_uploaded_data(file, "Tolerance data")
   })
 
+  dimension_plot_data <- shiny::reactive({
+    df <- measurement_data()
+    if (is_app_error(df)) {
+      return(df)
+    }
+
+    shiny::req(input$part_col, input$operator_col, input$meas_col, input$dim_col)
+
+    selected_dim <- input$selected_dimension
+    if (is.null(selected_dim) || !length(selected_dim)) {
+      return(make_app_error("Select a dimension to display the measurement graphics."))
+    }
+
+    dim_column_values <- trimws(as.character(df[[input$dim_col]]))
+
+    if (!selected_dim %in% dim_column_values) {
+      return(make_app_error("Selected dimension not found in the measurement data."))
+    }
+
+    dim_mask <- dim_column_values == selected_dim
+    subset_df <- df[dim_mask, , drop = FALSE]
+
+    measurement_parsed <- parse_numeric_column(subset_df[[input$meas_col]], "Measurement")
+    if (!is.null(measurement_parsed$error)) {
+      return(make_app_error(measurement_parsed$error))
+    }
+
+    measurement_values <- measurement_parsed$values
+    part_values <- trimws(as.character(subset_df[[input$part_col]]))
+    operator_values <- trimws(as.character(subset_df[[input$operator_col]]))
+
+    valid_rows <- !is.na(measurement_values) & !is.na(part_values) & !is.na(operator_values) &
+      part_values != "" & operator_values != ""
+
+    measurement_values <- measurement_values[valid_rows]
+    part_values <- part_values[valid_rows]
+    operator_values <- operator_values[valid_rows]
+
+    if (!length(measurement_values)) {
+      return(make_app_error("No valid measurement data available for the selected dimension."))
+    }
+
+    data.frame(
+      part = part_values,
+      operator = operator_values,
+      measurement = measurement_values,
+      stringsAsFactors = FALSE
+    )
+  })
+
+
   output$column_selectors <- shiny::renderUI({
     df <- measurement_data()
     if (is_app_error(df)) {
@@ -199,7 +250,7 @@ server <- function(input, output, session) {
     )
   })
 
-    output$tolerance_selectors <- shiny::renderUI({
+  output$tolerance_selectors <- shiny::renderUI({
     tol_df <- tolerance_data()
     if (is.null(tol_df)) {
       return(shiny::helpText("No tolerance file uploaded."))
@@ -245,56 +296,6 @@ server <- function(input, output, session) {
       if (!is.null(usl_parsed$error)) {
         return(make_app_error(usl_parsed$error))
       }
-
-      dimension_plot_data <- shiny::reactive({
-        df <- measurement_data()
-        if (is_app_error(df)) {
-          return(df)
-        }
-
-        shiny::req(input$part_col, input$operator_col, input$meas_col, input$dim_col)
-
-        selected_dim <- input$selected_dimension
-        if (is.null(selected_dim) || !length(selected_dim)) {
-          return(make_app_error("Select a dimension to display the measurement graphics."))
-        }
-
-        dim_column_values <- trimws(as.character(df[[input$dim_col]]))
-
-        if (!selected_dim %in% dim_column_values) {
-          return(make_app_error("Selected dimension not found in the measurement data."))
-        }
-
-        dim_mask <- dim_column_values == selected_dim
-        subset_df <- df[dim_mask, , drop = FALSE]
-
-        measurement_parsed <- parse_numeric_column(subset_df[[input$meas_col]], "Measurement")
-        if (!is.null(measurement_parsed$error)) {
-          return(make_app_error(measurement_parsed$error))
-        }
-
-        measurement_values <- measurement_parsed$values
-        part_values <- trimws(as.character(subset_df[[input$part_col]]))
-        operator_values <- trimws(as.character(subset_df[[input$operator_col]]))
-
-        valid_rows <- !is.na(measurement_values) & !is.na(part_values) & !is.na(operator_values) &
-          part_values != "" & operator_values != ""
-
-        measurement_values <- measurement_values[valid_rows]
-        part_values <- part_values[valid_rows]
-        operator_values <- operator_values[valid_rows]
-
-        if (!length(measurement_values)) {
-          return(make_app_error("No valid measurement data available for the selected dimension."))
-        }
-
-        data.frame(
-          part = part_values,
-          operator = operator_values,
-          measurement = measurement_values,
-          stringsAsFactors = FALSE
-        )
-      })
 
       tolerance_lookup <- data.frame(
         dim = tol_dim,

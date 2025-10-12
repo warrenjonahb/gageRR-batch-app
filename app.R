@@ -123,6 +123,9 @@ ui <- shiny::fluidPage(
       width = 4
     ),
     shiny::mainPanel(
+      shiny::h4("Measurement data preview"),
+      shiny::tableOutput("data_preview"),
+      shiny::br(),
       shiny::h3("Batch results"),
       shiny::tableOutput("results_table"),
       shiny::br(),
@@ -130,9 +133,6 @@ ui <- shiny::fluidPage(
       plotly::plotlyOutput("part_measurement_plot"),
       shiny::br(),
       plotly::plotlyOutput("operator_measurement_plot"),
-      shiny::br(),
-      shiny::h4("Measurement data preview"),
-      shiny::tableOutput("data_preview"),
       shiny::br(),
       shiny::conditionalPanel(
         condition = "output.show_tolerance_preview",
@@ -426,7 +426,9 @@ server <- function(input, output, session) {
       y = ~measurement,
       type = "scatter",
       mode = "markers",
-      hovertemplate = "Part: %{x}<br>Measurement: %{y}<extra></extra>",
+      color = ~operator,
+      customdata = ~operator,
+      hovertemplate = "Part: %{x}<br>Measurement: %{y}<br>Operator: %{customdata}<extra></extra>",
       name = "Measurements"
     ) %>%
       plotly::layout(
@@ -457,7 +459,8 @@ server <- function(input, output, session) {
       y = ~measurement,
       type = "scatter",
       mode = "markers",
-      hovertemplate = "Operator: %{x}<br>Measurement: %{y}<extra></extra>",
+      customdata = ~part,
+      hovertemplate = "Operator: %{x}<br>Part: %{customdata}<br>Measurement: %{y}<extra></extra>",
       name = "Measurements"
     ) %>%
       plotly::add_boxplot(

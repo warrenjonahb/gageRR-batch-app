@@ -15,6 +15,45 @@ if (!requireNamespace("plotly", quietly = TRUE)) {
   )
 }
 
+if (!requireNamespace("dplyr", quietly = TRUE)) {
+  stop(
+    "The gageRR batch Shiny app requires the 'dplyr' package. Install it with install.packages('dplyr').",
+    call. = FALSE
+  )
+}
+
+`%>%` <- dplyr::`%>%`
+
+ensure_github_gageRR <- function() {
+  pkg_desc <- tryCatch(utils::packageDescription("gageRR"), error = function(e) NULL)
+
+  needs_install <- TRUE
+  if (!is.null(pkg_desc)) {
+    needs_install <- !identical(pkg_desc$RemoteUsername, "warrenjonahb") ||
+      !identical(pkg_desc$RemoteRepo, "gageRR") ||
+      !identical(pkg_desc$RemoteRef, "unablanced-study")
+  }
+
+  if (needs_install) {
+    if (!requireNamespace("remotes", quietly = TRUE)) {
+      stop(
+        "The gageRR batch Shiny app requires the 'remotes' package to install the GitHub version of gageRR. Install it with install.packages('remotes').",
+        call. = FALSE
+      )
+    }
+    remotes::install_github("warrenjonahb/gageRR@unablanced-study", upgrade = "never")
+  }
+
+  if (!requireNamespace("gageRR", quietly = TRUE)) {
+    stop(
+      "The gageRR batch Shiny app requires the gageRR package from warrenjonahb/gageRR@unablanced-study.",
+      call. = FALSE
+    )
+  }
+}
+
+ensure_github_gageRR()
+
 make_app_error <- function(message) {
   structure(list(message = message), class = "gageRR_app_error")
 }
@@ -125,6 +164,11 @@ ui <- shiny::fluidPage(
     shiny::mainPanel(
       shiny::h4("Measurement data preview"),
       shiny::tableOutput("data_preview"),
+      shiny::conditionalPanel(
+        condition = "output.show_tolerance_preview",
+        shiny::h4("Tolerance data preview"),
+        shiny::tableOutput("tolerance_preview")
+      ),
       shiny::br(),
       shiny::h3("Batch results"),
       shiny::tableOutput("results_table"),
@@ -133,12 +177,6 @@ ui <- shiny::fluidPage(
       plotly::plotlyOutput("part_measurement_plot"),
       shiny::br(),
       plotly::plotlyOutput("operator_measurement_plot"),
-      shiny::br(),
-      shiny::conditionalPanel(
-        condition = "output.show_tolerance_preview",
-        shiny::h4("Tolerance data preview"),
-        shiny::tableOutput("tolerance_preview")
-      ),
       width = 8
     )
   )

@@ -410,7 +410,7 @@ server <- function(input, output, session) {
 
       data.frame(
         dim_desc = current_dim,
-        NumDistinctCats = calc$NumDistinctCats,
+        NumDistinctCats = as.integer(round(calc$NumDistinctCats)),
         PercentStudyVariation = percent_study,
         PercentTolerance = percent_tol,
         stringsAsFactors = FALSE
